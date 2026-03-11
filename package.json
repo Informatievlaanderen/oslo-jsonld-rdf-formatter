@@ -1,6 +1,6 @@
 {
-  "name": "jsonld-rdf-formatter",
-  "version": "1.0.0",
+  "name": "@oslo-flanders/jsonld-rdf-formatter",
+  "version": "1.0.2",
   "description": "Convert RDF Turtle to JSON-LD using a provided context",
   "author": "Digitaal Vlaanderen <https://data.vlaanderen.be/id/organisatie/OVO002949>",
   "main": "dist/jsonld-rdf-formatter.js",
@@ -8,12 +8,16 @@
   "bin": {
     "jsonld-rdf-formatter": "./dist/jsonld-rdf-formatter.js"
   },
+  "files": [
+    "dist/**/*.d.ts",
+    "dist/**/*.js"
+  ],
   "scripts": {
-    "build": "tsc",
-    "start": "node dist/jsonld-rdf-formatter.js"
+    "build": "tsc"
   },
   "dependencies": {
     "commander": "^12.1.0",
+    "global": "^4.4.0",
     "jsonld": "^8.3.3",
     "n3": "^1.22.3"
   },

@@ -32,7 +32,7 @@ The converter uses the n3 library to parse Turtle files and the jsonld library t
 ## Usage
 
 ```bash
-ttl-to-jsonld MAGDA-GeefPersoon-REST-Voorbeeld-Wettelijke-Woonplaats.ttl persoon-im.jsonld
-ttl-to-jsonld MAGDA-GeefPersoon-REST-Voorbeeld-Wettelijke-Woonplaats.ttl persoon-im.jsonld --output result.jsonld
+jsonld-rdf-formatter MAGDA-GeefPersoon-REST-Voorbeeld-Wettelijke-Woonplaats.ttl persoon-im.jsonld
+jsonld-rdf-formatter MAGDA-GeefPersoon-REST-Voorbeeld-Wettelijke-Woonplaats.ttl persoon-im.jsonld --output result.jsonld
 
 ```
