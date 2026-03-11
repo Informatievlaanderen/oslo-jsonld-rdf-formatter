@@ -13,25 +13,35 @@ export async function convert(
     string,
     unknown
   >;
+  let root;
   const ctx = extractContext(contextDoc);
 
-  console.error("Parsing Turtle…");
+  console.log("Parsing Turtle…");
   const nquads = await turtleToNQuads(ttlFile);
 
-  console.error("Converting to expanded JSON-LD…");
+  console.log("Converting to expanded JSON-LD…");
   const expanded = await jsonld.fromRDF(
     nquads as unknown as jsonld.JsonLdDocument,
     { format: "application/n-quads" },
   );
 
-  console.error("Compacting with provided context…");
-  const compacted = await jsonld.compact(
-    expanded as jsonld.JsonLdDocument,
-    ctx,
-  );
+  console.log("Compacting with provided context…");
+  root = await jsonld.compact(expanded as jsonld.JsonLdDocument, ctx);
+
+  if (opts.root) {
+    const frame = {
+      "@context": ctx,
+      "@embed": "@once",
+      "@type": opts.root,
+    };
+    root = await jsonld.frame(root, frame);
+  }
+
+  // Replace the inline context with a URL reference
+  root["@context"] = contextFile;
 
   // Keep same name as input file, just with jsonld extension
   const output = opts.output || ttlFile.replace(/\.ttl$/i, ".jsonld");
-  fs.writeFileSync(output, JSON.stringify(compacted, null, 2));
-  console.error(`Written to ${output}`);
+  fs.writeFileSync(output, JSON.stringify(root, null, 2));
+  console.log(`Written to ${output}`);
 }

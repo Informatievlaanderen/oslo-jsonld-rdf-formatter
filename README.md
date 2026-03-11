@@ -18,12 +18,23 @@ npm install -g @oslo-flanders/jsonld-rdf-formatter
 
 ## API
 
-The service is executed from the CLI and expects the following parameters:
-| Parameter | Description | Required | Possible values |
-| --------- | --------- | ----------- | --------------- |
-| `--ttl-file` | Path to the input RDF Turtle file | :heavy_check_mark: | |
-| `--context` | The URL or local file path of a JSON-LD context file | :heavy_check_mark: ||
-| `-o, --output` | The name of the output file | No, defaults to input file with `.jsonld` extension ||
+The service is executed from the CLI and expects the following arguments:
+
+### Arguments
+
+| Argument     | Description                                          | Required           |
+| ------------ | ---------------------------------------------------- | ------------------ |
+| `<ttl-file>` | Path to the input RDF Turtle file                    | :heavy_check_mark: |
+| `<context>`  | The URL or local file path of a JSON-LD context file | :heavy_check_mark: |
+
+### Options
+
+The service is executed from the CLI and expects the following optional parameters:
+
+| Option                | Description                                   | Default             |
+| --------------------- | --------------------------------------------- | ------------------- |
+| `-o, --output <file>` | The name of the output JSON-LD file           | `<ttl-file>.jsonld` |
+| `-r, --root <object>` | Root object for which to generate the JSON-LD |                     |
 
 ## Sidenote
 
@@ -34,5 +45,6 @@ The converter uses the n3 library to parse Turtle files and the jsonld library t
 ```bash
 jsonld-rdf-formatter MAGDA-GeefPersoon-REST-Voorbeeld-Wettelijke-Woonplaats.ttl persoon-im.jsonld
 jsonld-rdf-formatter MAGDA-GeefPersoon-REST-Voorbeeld-Wettelijke-Woonplaats.ttl persoon-im.jsonld --output result.jsonld
+jsonld-rdf-formatter MAGDA-GeefPersoon-REST-Voorbeeld-Wettelijke-Woonplaats.ttl persoon-im.jsonld --output result.jsonld --root GeregistreerdPersoon
 
 ```
