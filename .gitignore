@@ -137,3 +137,6 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+MAGDA-GeefPersoon-REST-Voorbeeld-Wettelijke-Woonplaats.ttl
+example-29012818180.json
