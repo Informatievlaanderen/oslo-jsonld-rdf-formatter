@@ -23,7 +23,7 @@ The service is executed from the CLI and expects the following parameters:
 | --------- | --------- | ----------- | --------------- |
 | `--ttl-file` | Path to the input RDF Turtle file | :heavy_check_mark: | |
 | `--context` | The URL or local file path of a JSON-LD context file | :heavy_check_mark: ||
-| `-o, --output` | The name of the output file | No, defaults to `output.jsonld` ||
+| `-o, --output` | The name of the output file | No, defaults to input file with `.jsonld` extension ||
 
 ## Sidenote
 
