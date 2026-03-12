@@ -1,19 +1,13 @@
-import fs from "fs";
-import path from "path";
 import type { ContextDefinition } from "jsonld";
 
 export async function loadContext(
   contextRef: string,
 ): Promise<ContextDefinition> {
-  if (/^https?:\/\//.test(contextRef)) {
-    const resp = await fetch(contextRef);
-    if (!resp.ok) {
-      throw new Error(`HTTP ${resp.status} fetching ${contextRef}`);
-    }
-    return resp.json();
+  const resp = await fetch(contextRef);
+  if (!resp.ok) {
+    throw new Error(`HTTP ${resp.status} fetching ${contextRef}`);
   }
-  const abs = path.resolve(contextRef);
-  return JSON.parse(fs.readFileSync(abs, "utf8"));
+  return resp.json();
 }
 
 export function extractContext(
