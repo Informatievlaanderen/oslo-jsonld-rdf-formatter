@@ -43,13 +43,18 @@ function buildMappings(ctx: Record<string, unknown>): {
   return { scoped, fallback };
 }
 
+function isUri(str: string): boolean {
+  return /^https?:\/\//.test(str) || str.includes(":");
+}
+
 function applyScoped(
   obj: unknown,
   scoped: ScopedMapping,
   fallback: Map<string, string>,
+  unmappedUris: Set<string>,
 ): unknown {
   if (Array.isArray(obj))
-    return obj.map((item) => applyScoped(item, scoped, fallback));
+    return obj.map((item) => applyScoped(item, scoped, fallback, unmappedUris));
   if (typeof obj !== "object" || obj === null) return obj;
 
   const node = obj as Record<string, unknown>;
@@ -67,11 +72,18 @@ function applyScoped(
 
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(node)) {
-    const newKey = iriToLocal.get(key) ?? fallback.get(key) ?? key;
+    const mappedKey = iriToLocal.get(key) ?? fallback.get(key);
+    const newKey = mappedKey ?? key;
+
+    // Track unmapped URIs only (keys that didn't get shortened and look like URIs)
+    if (!mappedKey && !SKIP_RECURSE.has(key) && isUri(key)) {
+      unmappedUris.add(key);
+    }
+
     // Recurse into @graph/@included but not into leaf @-keywords. Needed for the graph representation
     result[newKey] = SKIP_RECURSE.has(key)
       ? value
-      : applyScoped(value, scoped, fallback);
+      : applyScoped(value, scoped, fallback, unmappedUris);
   }
 
   return result;
@@ -112,7 +124,16 @@ export async function convert(
   }
 
   const { scoped, fallback } = buildMappings(ctx as Record<string, unknown>);
-  root = applyScoped(root, scoped, fallback) as typeof root;
+  const unmappedUris = new Set<string>();
+  root = applyScoped(root, scoped, fallback, unmappedUris) as typeof root;
+
+  // Log unmapped URIs
+  if (unmappedUris.size) {
+    console.log("\nWarning: The following URIs could not be shortened:");
+    Array.from(unmappedUris)
+      .sort()
+      .forEach((uri) => console.log(`  - ${uri}`));
+  }
 
   root["@context"] = contextFile;
 
