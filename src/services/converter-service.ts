@@ -5,21 +5,34 @@ import { turtleToNQuads } from "./turtle-parser-service";
 import { ConvertOptions, ScopedMapping, TypeDef } from "../types/converter";
 import { SKIP_RECURSE } from "../constants/constants";
 
+function isContainerArray(container: unknown): boolean {
+  if (container === "@set" || container === "@list") return true;
+  if (Array.isArray(container))
+    return container.includes("@set") || container.includes("@list");
+  return false;
+}
+
 function buildMappings(ctx: Record<string, unknown>): {
   scoped: ScopedMapping;
   fallback: Map<string, string>;
+  arrayProps: Set<string>;
 } {
   const scoped: ScopedMapping = new Map();
   const fallback = new Map<string, string>();
+  const arrayProps = new Set<string>();
 
   for (const [termName, typeDef] of Object.entries(ctx)) {
+    if (typeof typeDef !== "object" || typeDef === null) continue;
+
+    // Collect top-level array properties
     if (
-      typeof typeDef !== "object" ||
-      typeDef === null ||
-      !("@id" in typeDef) ||
-      !("@context" in typeDef)
-    )
-      continue;
+      "@container" in typeDef &&
+      isContainerArray((typeDef as Record<string, unknown>)["@container"])
+    ) {
+      arrayProps.add(termName);
+    }
+
+    if (!("@id" in typeDef) || !("@context" in typeDef)) continue;
 
     const { "@context": scopedCtx } = typeDef as TypeDef;
     if (!scopedCtx) continue;
@@ -32,6 +45,10 @@ function buildMappings(ctx: Record<string, unknown>): {
         if (!fallback.has(propDef["@id"])) {
           fallback.set(propDef["@id"], localName);
         }
+        // Collect scoped array properties
+        if (isContainerArray(propDef["@container"])) {
+          arrayProps.add(localName);
+        }
       }
     }
 
@@ -40,7 +57,26 @@ function buildMappings(ctx: Record<string, unknown>): {
     }
   }
 
-  return { scoped, fallback };
+  return { scoped, fallback, arrayProps };
+}
+
+function enforceArrayProps(obj: unknown, arrayProps: Set<string>): unknown {
+  if (Array.isArray(obj))
+    return obj.map((item) => enforceArrayProps(item, arrayProps));
+  if (typeof obj !== "object" || obj === null) return obj;
+
+  const node = obj as Record<string, unknown>;
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(node)) {
+    const processed = SKIP_RECURSE.has(key)
+      ? value
+      : enforceArrayProps(value, arrayProps);
+    result[key] =
+      arrayProps.has(key) && !Array.isArray(processed)
+        ? [processed]
+        : processed;
+  }
+  return result;
 }
 
 function isUri(str: string): boolean {
@@ -123,9 +159,12 @@ export async function convert(
     root = await jsonld.frame(root, frame);
   }
 
-  const { scoped, fallback } = buildMappings(ctx as Record<string, unknown>);
+  const { scoped, fallback, arrayProps } = buildMappings(
+    ctx as Record<string, unknown>,
+  );
   const unmappedUris = new Set<string>();
   root = applyScoped(root, scoped, fallback, unmappedUris) as typeof root;
+  root = enforceArrayProps(root, arrayProps) as typeof root;
 
   // Log unmapped URIs
   if (unmappedUris.size) {
