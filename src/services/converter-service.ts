@@ -135,7 +135,6 @@ export async function convert(
   root = applyScoped(root, scoped, fallback, unmappedUris) as typeof root;
   root = enforceArrayProps(root, arrayProps) as typeof root;
 
-  console.log(opts.compact);
   if (opts.compact) {
     root = collapsePrimitiveLiterals(root, primitiveTypes) as typeof root;
   } else {
