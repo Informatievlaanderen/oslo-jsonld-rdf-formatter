@@ -1,6 +1,6 @@
 {
   "name": "@oslo-flanders/jsonld-rdf-formatter",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "Convert an RDF Turtle file to JSON-LD using a provided context",
   "author": "Digitaal Vlaanderen <https://data.vlaanderen.be/id/organisatie/OVO002949>",
   "main": "dist/jsonld-rdf-formatter.js",
@@ -15,7 +15,7 @@
   "scripts": {
     "build": "tsc",
     "test:dummy": "npm run build && node dist/jsonld-rdf-formatter.js MAGDA-GeefPersoon-REST-Voorbeeld-Wettelijke-Woonplaats.ttl https://test.data.vlaanderen.be/doc/implementatiemodel/magda/persoon/context/persoon-IM.jsonld --output dummy.jsonld -r GeregistreerdPersoon",
-    "test:persoon": "npm run build && for file in test/voorbeelden-persoon/**/persoon.ttl; do echo \"Processing $file...\"; node dist/jsonld-rdf-formatter.js \"$file\" https://test.data.vlaanderen.be/doc/implementatiemodel/magda/persoon/context/persoon-IM.jsonld --output \"${file%.ttl}.jsonld\" -r GeregistreerdPersoon; done"
+    "test:persoon": "npm run build && for file in test/voorbeelden-persoon/**/persoon.ttl; do echo \"Processing $file...\"; node dist/jsonld-rdf-formatter.js \"$file\" https://test.data.vlaanderen.be/doc/implementatiemodel/magda/persoon/context/persoon-IM.jsonld --output \"${file%.ttl}.jsonld\" -r GeregistreerdPersoon --compact true; done"
   },
   "dependencies": {
     "commander": "^12.1.0",

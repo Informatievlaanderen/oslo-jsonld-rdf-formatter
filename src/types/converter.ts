@@ -11,6 +11,7 @@ export interface ContextMappings {
   propertyTypes: Map<string, string>;
   primitiveTypes: Set<string>;
   typeExpansions: Map<string, string>;
+  stringLikeTypes: Set<string>;
 }
 
 export type PropDef = { "@id": string; [key: string]: unknown };

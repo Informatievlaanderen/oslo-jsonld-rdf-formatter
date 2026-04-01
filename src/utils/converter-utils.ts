@@ -103,15 +103,26 @@ export function expandPrimitiveLiterals(
   obj: unknown,
   propertyTypes: Map<string, string>,
   typeExpansions?: Map<string, string>,
+  stringLikeTypes?: Set<string>,
   parentKey?: string,
 ): unknown {
   if (Array.isArray(obj))
     return obj.map((item) =>
-      expandPrimitiveLiterals(item, propertyTypes, typeExpansions, parentKey),
+      expandPrimitiveLiterals(
+        item,
+        propertyTypes,
+        typeExpansions,
+        stringLikeTypes,
+        parentKey,
+      ),
     );
   if (typeof obj !== "object" || obj === null) {
     if (typeof obj === "string" && parentKey) {
       const type = propertyTypes.get(parentKey);
+      // For string-like types (String, LangString), omit the @type field
+      if (type && stringLikeTypes?.has(type)) {
+        return { "@value": obj };
+      }
       return type ? { "@type": type, "@value": obj } : { "@value": obj };
     }
     return obj;
@@ -132,6 +143,7 @@ export function expandPrimitiveLiterals(
         value,
         propertyTypes,
         typeExpansions,
+        stringLikeTypes,
         key,
       );
     }

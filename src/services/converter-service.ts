@@ -29,6 +29,7 @@ function buildMappings(ctx: Record<string, unknown>): ContextMappings {
   const propertyTypes = new Map<string, string>();
   const primitiveTypes = new Set<string>();
   const typeExpansions = new Map<string, string>();
+  const stringLikeTypes = new Set<string>();
 
   for (const [termName, typeDef] of Object.entries(ctx)) {
     if (typeof typeDef !== "object" || typeDef === null) continue;
@@ -43,6 +44,17 @@ function buildMappings(ctx: Record<string, unknown>): ContextMappings {
       primitiveTypes.add(termName);
       primitiveTypes.add(id);
       typeExpansions.set(termName, id);
+
+      // Track string-like types (String, LangString) where @type can be omitted
+      if (
+        termName === "String" ||
+        termName === "LangString" ||
+        id.endsWith("#string") ||
+        id.endsWith("#langString")
+      ) {
+        stringLikeTypes.add(termName);
+        stringLikeTypes.add(id);
+      }
     }
 
     // Collect top-level array properties
@@ -86,6 +98,7 @@ function buildMappings(ctx: Record<string, unknown>): ContextMappings {
     propertyTypes,
     primitiveTypes,
     typeExpansions,
+    stringLikeTypes,
   };
 }
 
@@ -130,6 +143,7 @@ export async function convert(
     propertyTypes,
     primitiveTypes,
     typeExpansions,
+    stringLikeTypes,
   } = buildMappings(ctx as Record<string, unknown>);
   const unmappedUris = new Set<string>();
   root = applyScoped(root, scoped, fallback, unmappedUris) as typeof root;
@@ -142,6 +156,7 @@ export async function convert(
       root,
       propertyTypes,
       typeExpansions,
+      stringLikeTypes,
     ) as typeof root;
   }
 
