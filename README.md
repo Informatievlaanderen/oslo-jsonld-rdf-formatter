@@ -35,7 +35,7 @@ The service is executed from the CLI and expects the following optional paramete
 | ------------------------- | --------------------------------------------- | ------------------- |
 | `-o, --output <file>`     | The name of the output JSON-LD file           | `<ttl-file>.jsonld` |
 | `-r, --root <object>`     | Root object for which to generate the JSON-LD |                     |
-| `-c, --compact <boolean>` | Whether to compact the JSON-LD output         | `true`              |
+| `-c, --compact <boolean>` | Whether to compact the JSON-LD output         | `false`             |
 
 ## Sidenote
 
