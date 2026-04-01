@@ -31,10 +31,11 @@ The service is executed from the CLI and expects the following arguments:
 
 The service is executed from the CLI and expects the following optional parameters:
 
-| Option                | Description                                   | Default             |
-| --------------------- | --------------------------------------------- | ------------------- |
-| `-o, --output <file>` | The name of the output JSON-LD file           | `<ttl-file>.jsonld` |
-| `-r, --root <object>` | Root object for which to generate the JSON-LD |                     |
+| Option                    | Description                                   | Default             |
+| ------------------------- | --------------------------------------------- | ------------------- |
+| `-o, --output <file>`     | The name of the output JSON-LD file           | `<ttl-file>.jsonld` |
+| `-r, --root <object>`     | Root object for which to generate the JSON-LD |                     |
+| `-c, --compact <boolean>` | Whether to compact the JSON-LD output         | `true`              |
 
 ## Sidenote
 

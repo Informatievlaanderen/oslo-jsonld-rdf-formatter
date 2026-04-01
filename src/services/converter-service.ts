@@ -2,8 +2,18 @@ import fs from "fs";
 import * as jsonld from "jsonld";
 import { loadContext, extractContext } from "./context-loader-service";
 import { turtleToNQuads } from "./turtle-parser-service";
-import { ConvertOptions, ScopedMapping, TypeDef } from "../types/converter";
-import { SKIP_RECURSE } from "../constants/constants";
+import {
+  ConvertOptions,
+  ContextMappings,
+  ScopedMapping,
+  TypeDef,
+} from "../types/converter";
+import {
+  applyScoped,
+  collapsePrimitiveLiterals,
+  enforceArrayProps,
+  expandPrimitiveLiterals,
+} from "../utils/converter-utils";
 
 function isContainerArray(container: unknown): boolean {
   if (container === "@set" || container === "@list") return true;
@@ -12,27 +22,35 @@ function isContainerArray(container: unknown): boolean {
   return false;
 }
 
-function buildMappings(ctx: Record<string, unknown>): {
-  scoped: ScopedMapping;
-  fallback: Map<string, string>;
-  arrayProps: Set<string>;
-} {
+function buildMappings(ctx: Record<string, unknown>): ContextMappings {
   const scoped: ScopedMapping = new Map();
   const fallback = new Map<string, string>();
   const arrayProps = new Set<string>();
+  const propertyTypes = new Map<string, string>();
+  const primitiveTypes = new Set<string>();
+  const typeExpansions = new Map<string, string>();
 
   for (const [termName, typeDef] of Object.entries(ctx)) {
     if (typeof typeDef !== "object" || typeDef === null) continue;
 
+    const entry = typeDef as Record<string, unknown>;
+    const id = entry["@id"];
+    const hasContext = "@context" in entry;
+
+    // Collect primitive type aliases: top-level entries with @id but no @context
+    // (e.g. "String", "Date", "Integer", "LangString", "Literal", "URI", etc.)
+    if (typeof id === "string" && !hasContext) {
+      primitiveTypes.add(termName);
+      primitiveTypes.add(id);
+      typeExpansions.set(termName, id);
+    }
+
     // Collect top-level array properties
-    if (
-      "@container" in typeDef &&
-      isContainerArray((typeDef as Record<string, unknown>)["@container"])
-    ) {
+    if ("@container" in entry && isContainerArray(entry["@container"])) {
       arrayProps.add(termName);
     }
 
-    if (!("@id" in typeDef) || !("@context" in typeDef)) continue;
+    if (!hasContext) continue;
 
     const { "@context": scopedCtx } = typeDef as TypeDef;
     if (!scopedCtx) continue;
@@ -49,6 +67,10 @@ function buildMappings(ctx: Record<string, unknown>): {
         if (isContainerArray(propDef["@container"])) {
           arrayProps.add(localName);
         }
+        // Collect property types (first definition wins)
+        if (propDef["@type"] && !propertyTypes.has(localName)) {
+          propertyTypes.set(localName, propDef["@type"] as string);
+        }
       }
     }
 
@@ -57,72 +79,14 @@ function buildMappings(ctx: Record<string, unknown>): {
     }
   }
 
-  return { scoped, fallback, arrayProps };
-}
-
-function enforceArrayProps(obj: unknown, arrayProps: Set<string>): unknown {
-  if (Array.isArray(obj))
-    return obj.map((item) => enforceArrayProps(item, arrayProps));
-  if (typeof obj !== "object" || obj === null) return obj;
-
-  const node = obj as Record<string, unknown>;
-  const result: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(node)) {
-    const processed = SKIP_RECURSE.has(key)
-      ? value
-      : enforceArrayProps(value, arrayProps);
-    result[key] =
-      arrayProps.has(key) && !Array.isArray(processed)
-        ? [processed]
-        : processed;
-  }
-  return result;
-}
-
-function isUri(str: string): boolean {
-  return /^https?:\/\//.test(str) || str.includes(":");
-}
-
-function applyScoped(
-  obj: unknown,
-  scoped: ScopedMapping,
-  fallback: Map<string, string>,
-  unmappedUris: Set<string>,
-): unknown {
-  if (Array.isArray(obj))
-    return obj.map((item) => applyScoped(item, scoped, fallback, unmappedUris));
-  if (typeof obj !== "object" || obj === null) return obj;
-
-  const node = obj as Record<string, unknown>;
-
-  const iriToLocal = new Map<string, string>();
-  const types = Array.isArray(node["@type"])
-    ? node["@type"]
-    : node["@type"]
-      ? [node["@type"]]
-      : [];
-  for (const t of types as string[]) {
-    const m = scoped.get(t);
-    if (m) m.forEach((local, iri) => iriToLocal.set(iri, local));
-  }
-
-  const result: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(node)) {
-    const mappedKey = iriToLocal.get(key) ?? fallback.get(key);
-    const newKey = mappedKey ?? key;
-
-    // Track unmapped URIs only (keys that didn't get shortened and look like URIs)
-    if (!mappedKey && !SKIP_RECURSE.has(key) && isUri(key)) {
-      unmappedUris.add(key);
-    }
-
-    // Recurse into @graph/@included but not into leaf @-keywords. Needed for the graph representation
-    result[newKey] = SKIP_RECURSE.has(key)
-      ? value
-      : applyScoped(value, scoped, fallback, unmappedUris);
-  }
-
-  return result;
+  return {
+    scoped,
+    fallback,
+    arrayProps,
+    propertyTypes,
+    primitiveTypes,
+    typeExpansions,
+  };
 }
 
 export async function convert(
@@ -134,8 +98,8 @@ export async function convert(
     string,
     unknown
   >;
-  let root;
   const ctx = extractContext(contextDoc);
+  let root;
 
   console.log("Parsing Turtle…");
   const nquads = await turtleToNQuads(ttlFile);
@@ -159,12 +123,27 @@ export async function convert(
     root = await jsonld.frame(root, frame);
   }
 
-  const { scoped, fallback, arrayProps } = buildMappings(
-    ctx as Record<string, unknown>,
-  );
+  const {
+    scoped,
+    fallback,
+    arrayProps,
+    propertyTypes,
+    primitiveTypes,
+    typeExpansions,
+  } = buildMappings(ctx as Record<string, unknown>);
   const unmappedUris = new Set<string>();
   root = applyScoped(root, scoped, fallback, unmappedUris) as typeof root;
   root = enforceArrayProps(root, arrayProps) as typeof root;
+
+  if (opts.compact) {
+    root = collapsePrimitiveLiterals(root, primitiveTypes) as typeof root;
+  } else {
+    root = expandPrimitiveLiterals(
+      root,
+      propertyTypes,
+      typeExpansions,
+    ) as typeof root;
+  }
 
   // Log unmapped URIs
   if (unmappedUris.size) {
