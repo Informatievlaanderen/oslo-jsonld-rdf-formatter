@@ -22,6 +22,7 @@ program
     async (ttlFile: string, contextFile: string, opts: ConvertOptions) => {
       // Resolve paths relative to the current working directory
       const resolvedTtlFile = path.resolve(process.cwd(), ttlFile);
+      console.log(`Current working dir: ${path.resolve(process.cwd())}`);
       const resolvedOutput = opts.output
         ? path.resolve(process.cwd(), opts.output)
         : undefined;
