@@ -132,12 +132,8 @@ export function expandPrimitiveLiterals(
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(node)) {
     if (SKIP_RECURSE.has(key)) {
-      // Expand @type values if they're compacted type aliases
-      if (key === "@type" && typeExpansions && typeof value === "string") {
-        result[key] = typeExpansions.get(value) ?? value;
-      } else {
-        result[key] = value;
-      }
+      // Keep @type values in their compact form (don't expand)
+      result[key] = value;
     } else {
       result[key] = expandPrimitiveLiterals(
         value,

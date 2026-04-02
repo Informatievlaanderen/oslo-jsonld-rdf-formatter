@@ -1,6 +1,6 @@
 {
   "name": "@oslo-flanders/jsonld-rdf-formatter",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "Convert an RDF Turtle file to JSON-LD using a provided context",
   "author": "Digitaal Vlaanderen <https://data.vlaanderen.be/id/organisatie/OVO002949>",
   "main": "dist/jsonld-rdf-formatter.js",
