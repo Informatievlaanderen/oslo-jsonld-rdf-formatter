@@ -85,11 +85,6 @@ export function collapsePrimitiveLiterals(
     return node["@value"];
   }
 
-  // Collapse {"@id": "..."} to just the URI string
-  if (keys.length === 1 && typeof node["@id"] === "string") {
-    return node["@id"];
-  }
-
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(node)) {
     result[key] = SKIP_RECURSE.has(key)
